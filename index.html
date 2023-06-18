@@ -29,13 +29,16 @@
             }
             input {
                 width: 100%;
-                padding: 0.5rem
+                padding: 0.5rem;
             }
             button {
-                padding: 0.5rem 1rem
+                padding: 0.5rem 1rem;
             }
             h1 {
-                font-size: 1.2rem
+                font-size: 1.2rem;
+            }
+            h1, h2, h3, h4, h5, .leaflet-popup-content p {
+                margin: 0 0 0.5em 0;
             }
         </style>
     </head>
@@ -74,7 +77,7 @@
                 for (const row of rows) {
                     let marker;
                     if (row?.MarkerColor) {
-                        marker = L.circleMarker([row.Latitude, row.Longitude], {radius: 10, color: row.MarkerColor, fillColor: row.MarkerColor, fillOpacity: 0.9});
+                        marker = L.circleMarker([row.Latitude, row.Longitude], {radius: 10, color: "#000", fillColor: row.MarkerColor, fillOpacity: 0.9, weight: 2});
                     } else {
                         marker = L.marker([row.Latitude, row.Longitude]);
                     }
