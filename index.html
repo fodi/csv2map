@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSV2Map</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel=icon href="data:,">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <style>
+            * {
+                font-family: sans-serif;
+                margin: 0;
+                padding: 0;
+                font-size: 1.1rem;
+                box-sizing: border-box;
+            }
+            header > * {
+                padding: 1rem;
+            }
+            main {
+                width: 100vw;
+                height: 100vh;
+            }
+            form > * {
+                margin-bottom: 1rem;
+            }
+            input {
+                width: 100%;
+                padding: 0.5rem
+            }
+            button {
+                padding: 0.5rem 1rem
+            }
+            h1 {
+                font-size: 1.2rem
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>CSV2Map</h1>
+            <p id="loading" style="display:none">Loading...</p>
+            <form id="form" action="" style="display:none">
+                <p>This webapp turns rows of CSV files into markers on an interactive map. It's just some glue between <a href="https://www.papaparse.com/">PapaParse</a> and <a href="https://leafletjs.com/">Leaflet</a>, powered by <a href="https://www.openstreetmap.org/">OpenStreetMap</a>.</p>
+                <p>To get started, just enter the URL of your CSV file (eg. a Google Sheet published in that format). The file must include a <strong>Latitude</strong> and <strong>Longitude</strong> column. Optional columns are <strong title="If a marker is clicked, this HTML will show up in a popup">PopupHTML</strong> and <strong title="You can specify a HTML color name or hex value like #ff00ff if you want a colored circle instead of the default blue marker icon">MarkerColor</strong>.</p>
+                <input type="text" name="csv_url" placeholder="CSV URL (eg. https://example.com/places.csv)">
+                <button type="submit">Generate link</button>
+                <p><small>&copy; 2023 <a href="https://fodi.be">Fodi</a> | You can find the source code <a href="https://github.com/fodi/csv2map">over here</a>.</small></p>
+            </form>
+        </header>
+        <main id="map"></main>
+        <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            /* global L, Papa */
+
+            const urlParams = new URL(document.location).searchParams;
+            const csvURL = urlParams.get('csv_url');
+            let rows = [];
+            let map;
+
+            function onCSVParsed(results) {
+                rows = results.data ?? [];
+                if (results.errors.length > 0) {
+                    console.warn('Errors while parsing CSV:');
+                    console.warn(results.errors);
+                }
+                document.querySelector('header').remove();
+                const markers = [];
+                for (const row of rows) {
+                    let marker;
+                    if (row?.MarkerColor) {
+                        marker = L.circleMarker([row.Latitude, row.Longitude], {radius: 10, color: row.MarkerColor, fillColor: row.MarkerColor, fillOpacity: 0.9});
+                    } else {
+                        marker = L.marker([row.Latitude, row.Longitude]);
+                    }
+                    if (row?.PopupHTML) {
+                        marker.bindPopup(row.PopupHTML);
+                    }
+                    markers.push(marker);
+                }
+                map = L.map('map');
+                const featureGroup = L.featureGroup(markers).addTo(map);
+                map.fitBounds(featureGroup.getBounds().pad(0.1));
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }).addTo(map);
+            }
+
+            if (csvURL) {
+                document.getElementById('loading').style.display = 'block';
+                Papa.parse(csvURL, {
+                    worker: urlParams.get('worker'),
+                    header: true,
+                    download: true,
+                    complete: onCSVParsed
+                });
+            } else {
+                document.getElementById('form').style.display = 'block';
+            }
+        </script>
+    </body>
+</html>
