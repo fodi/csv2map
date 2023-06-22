@@ -40,6 +40,12 @@
             h1, h2, h3, h4, h5, .leaflet-popup-content p {
                 margin: 0 0 0.5em 0;
             }
+            .leaflet-tooltip {
+                padding: 0 4px;
+            }
+            .leaflet-tooltip > * {
+                font-size: 0.9rem
+            }
         </style>
     </head>
     <body>
@@ -49,7 +55,7 @@
             <form id="form" action="" style="display:none">
                 <p>This webapp turns rows of CSV files into markers on an interactive map. It's just some glue between <a href="https://www.papaparse.com/">PapaParse</a> and <a href="https://leafletjs.com/">Leaflet</a>, powered by <a href="https://www.openstreetmap.org/">OpenStreetMap</a>.</p>
                 <p>To get started, just enter the URL of your CSV file (eg. <a href="https://docs.google.com/spreadsheets/d/1dski_07gHa9LGK2491SN4-FepTHpsiaSQU9aY1CRoPc">a Google Sheet</a> <a href="https://docs.google.com/spreadsheets/d/e/2PACX-1vTrTyLnsl1Z8d48GBXT2fy-PbNEeo1AGa4U_-q9E3opt_gcvq73JVrWXoAAR4wrCqlOUZHO61rHVZVL/pub?single=true&output=csv">published in that format</a> will <a href=".?csv_url=https%3A%2F%2Fdocs.google.com%2Fspreadsheets%2Fd%2Fe%2F2PACX-1vTrTyLnsl1Z8d48GBXT2fy-PbNEeo1AGa4U_-q9E3opt_gcvq73JVrWXoAAR4wrCqlOUZHO61rHVZVL%2Fpub%3Fsingle%3Dtrue%26output%3Dcsv">turn into this</a>).</p>
-                <p>The file must include a <strong>Latitude</strong> and <strong>Longitude</strong> column. Optional columns are <abbr title="If a marker is clicked, this HTML will show up in a popup."><strong>PopupHTML</strong></abbr> and <abbr title="You can specify a HTML color name or hex value like #ff00ff if you want a colored circle instead of the default blue marker icon."><strong>MarkerColor</strong></abbr>.</p>
+                <p>The file must include a <strong>Latitude</strong> and <strong>Longitude</strong> column. Optional columns are <abbr title="Shows a permanent HTML tooltip below the marker"><strong>TooltipHTML</strong></abbr>, <abbr title="Shows a HTML popup when the marker is clicked."><strong>PopupHTML</strong></abbr> and <abbr title="Replaces default blue marker with a circle of that color; accepts HTML color names or hex values like #ff00ff."><strong>MarkerColor</strong></abbr>.</p>
                 <input type="text" name="csv_url" placeholder="CSV URL (eg. https://example.com/places.csv)">
                 <button type="submit">Generate link</button>
                 <p><small>&copy; 2023 <a href="https://fodi.be">Fodi</a> | You can find the source code <a href="https://github.com/fodi/csv2map">over here</a>.</small></p>
@@ -63,8 +69,7 @@
 
             const urlParams = new URL(document.location).searchParams;
             const csvURL = urlParams.get('csv_url');
-            let rows = [];
-            let map;
+            let map, rows = [], markers = [];
 
             function onCSVParsed(results) {
                 rows = results.data ?? [];
@@ -73,7 +78,7 @@
                     console.warn(results.errors);
                 }
                 document.querySelector('header').remove();
-                const markers = [];
+
                 for (const row of rows) {
                     let marker;
                     if (row?.MarkerColor) {
@@ -83,6 +88,9 @@
                     }
                     if (row?.PopupHTML) {
                         marker.bindPopup(row.PopupHTML);
+                    }
+                    if (row?.TooltipHTML) {
+                        marker.bindTooltip(row.TooltipHTML, {direction: 'bottom', permanent: true, offset: [0, 12]});
                     }
                     markers.push(marker);
                 }
